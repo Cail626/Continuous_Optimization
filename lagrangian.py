@@ -68,6 +68,17 @@ def Constraint_10(model,i,j,k):
     else:
         return model.Y[i,j,k] <= model.Z[i,k]
 
+def Constraint_11(model,i,j,k):
+    """ Link y and z variables"""
+    if(k>min(i,j)):
+        return True
+    else:
+        return model.Y[i,j,k] <= model.Z[j,k]    
+    
+def Constraint_12(model,k,n,P):
+    """ Make sure a node is representative if and only if zkk is equal to one, and that each node represents at most P − 1 other nodes, hence leading to subsets withat most P nodes."""
+    return sum(model.Z[i,k] for i in range(k,n)) <= (P-1)*model.Z[k,k]
+
 def solve_lagrangian():
     
     instance_name = 'a280.tsp'
@@ -96,7 +107,12 @@ def solve_lagrangian():
     model.goal = pyo.Objective(expr = calculate_cost(model.C,model.Y,n)- calculate_constaint9(model.Z,K,n,Lagrangian9) - calculate_constraint13(model.Z,K,n,Lagrangian13) , sense = pyo.minimize)
 
     model.Constraint_10 = pyo.Constraint(model.i,model.j,model.k,rule=Constraint_10)
-    
+    model.Constraint_11 = pyo.Constraint(model.i,model.j,model.k,rule=Constraint_11)    
+    model.Constraint_12 = pyo.Constraint(model.k,k,n,P,rule=Constraint_12)        
 
     opt = pyo.SolverFactory('glpk')
     opt.solve(model) 
+    print(pyo.value(model.obj))
+
+
+solve_lagrangian()

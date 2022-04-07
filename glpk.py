@@ -8,12 +8,12 @@ def read_instance(file_name):
     try:
         file = open("Instances/{}".format(file_name), 'r')
 
-        name = file.readline().split(" ")
-        comment = file.readline().split(" ")
-        tsp = file.readline().split(" ")
-        dimension = int(file.readline().split(" ")[-1])
-        edge_weight_type = file.readline().split(" ")
-        info = file.readline().split(" ")
+        name = file.readline().split(":")
+        comment = file.readline().split(":")
+        tsp = file.readline().split(":")
+        dimension = int(file.readline().split(":")[-1])
+        edge_weight_type = file.readline().split(":")
+        info = file.readline().split(":")
 
         node_positions = np.empty(dimension, dtype='2i')
         for line in range(dimension):
@@ -40,44 +40,39 @@ def calculate_cost(C,Y,n):
                 cost += C[i,j]*Y[i,j,k]
     return cost
 
-def calculate_constaint9(Z,K,n,Lagrangian9):
+def Constaint9(model,i,Z):
     """ all nodes must belong to one and only one subset"""
-    cost = 0
-    for i in range(n):
-        sum_z_ki = 0
-        for k in range(K):
-            sum_z_ki += Z[i,k]
-        cost += (sum_z_ki-1)*Lagrangian9[i]
-    return cost
+    return sum(model.Z[i,:i]) == 1
 
-def calculate_constraint13(Z,K,n,Lagrangian13):
-	""" Each subset must be used."""
-	
-	cost = 0
-	for k in range(n):
-		cost += Z[k][k]
-		
-	cost += -K
-	cost *= Lagrangian13
-	
-	return cost
 
 def Constraint_10(model,i,j,k):
-    if(k>min(i,j)):
-        return True
-    else:
-        return model.Y[i,j,k] <= model.Z[i,k]
+    """ Link y and z variables"""
+    if(k <= min(i,j)):
+        return model.Y[i,j,k] <= model.Z[i,k] 
+    return Constraint.Skip
+
+def Constraint_11(model,i,j,k):
+    """ Link y and z variables"""
+    if(k <= min(i,j)):
+        return model.Y[i,j,k] <= model.Z[j,k]    
+    return Constraint.Skip
+  
+def Constraint_12(model,k,n,P):
+    """ Make sure a node is representative if and only if zkk is equal to one, and that each node represents at most P − 1 other nodes, hence leading to subsets withat most P nodes."""
+    return sum(model.Z[i,k] for i in range(k,n)) <= (P-1)*model.Z[k,k]
+    
+def constraint13(model,K,n):
+    """ Each subset must be used (K in the partition)."""
+    return sum(model.Z[k,k] for k in range(n)) == K
 
 def solve_lagrangian():
     
-    instance_name = 'a280.tsp'
+    instance_name = 'eil51' # 'a280.tsp'
     C = read_instance(instance_name)
-    
     n = len(C)
-    Lagrangian9 = [0 for i in range(0,n)]
-    Lagrangian13 = 0
     K = 10
-    
+    print(n)
+   
     C_dict = {}
     for i in range(0,n):
         for j in range(0,n):
@@ -90,14 +85,16 @@ def solve_lagrangian():
 
     model.C = pyo.Param(model.i,model.j,initialize=C_dict)
 
-    model.Z = pyo.Var(model.i,model.k, domain=pyo.NonNegativeIntegers)
-    model.Y = pyo.Var(model.i,model.j,model.k,domain=pyo.NonNegativeIntegers)
+    model.Z = pyo.Var(model.i,model.k, domain=pyo.Binary)
+    model.Y = pyo.Var(model.i,model.j,model.k,domain=pyo.Binary)
 
-    model.goal = pyo.Objective(expr = calculate_cost(model.C,model.Y,n)- calculate_constaint9(model.Z,K,n,Lagrangian9) - calculate_constraint13(model.Z,K,n,Lagrangian13) , sense = pyo.minimize)
+    model.goal = pyo.Objective(expr = calculate_cost(model.C,model.Y,n), sense = pyo.minimize)
 
+    model.Constraint_9 = pyo.Constraint(model.Z,K,n,rule=Constraint_9)
     model.Constraint_10 = pyo.Constraint(model.i,model.j,model.k,rule=Constraint_10)
-    
-
+    model.Constraint_11 = pyo.Constraint(model.i,model.j,model.k,rule=Constraint_11)    
+    model.Constraint_12 = pyo.Constraint(model.k,k,n,P,rule=Constraint_12)    
+    model.Constraint_13 = pyo. constraint13(model.Z,K,n) 
     opt = pyo.SolverFactory('glpk')
     opt.solve(model) 
     print(pyo.value(model.obj))
