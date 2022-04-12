@@ -1,7 +1,7 @@
 import math
-
 import pyomo.environ as pyo
 import numpy as np
+import sys
 
 global n, K, P
 
@@ -21,7 +21,8 @@ def read_instance(file_name):
 
         node_positions = np.empty(dimension, dtype='2i')
         for line in range(dimension):
-            buffer = file.readline().split()
+            buffer = ' '.join(file.readline().split()) # remove multiple white space (the .tsp file layout are not consistant)
+            buffer = buffer.split()
             node_positions[line] = (int(buffer[1]), int(buffer[2]))
 
         file.close()
@@ -48,24 +49,48 @@ def Constraint_2(model,i):
     """ ensure each node is in exactly one subset"""
     # return (0,sum(model.Z[i,k] for k in range(i)),1)
     return sum(model.Z[i,k] for k in range(K)) == 1
-
-
+ 
 def Constraint_3(model,i,j,k):
     """ Link y and z variables"""
-    if(k <= K):
-        return model.Y[i,j,k] <= model.Z[i,k] 
-    return pyo.Constraint.Skip
+    return model.Y[i,j,k] <= model.Z[i,k] 
 
 def Constraint_4(model,i,j,k):
     """ Link y and z variables"""
-    if(k <= K):
-        return model.Y[i,j,k] <= model.Z[j,k]    
-    return pyo.Constraint.Skip
+    return model.Y[i,j,k] <= model.Z[j,k]    
   
 def Constraint_5(model,k):
     """ Make sure a node is representative if and only if zkk is equal to one, and that each node represents at most P − 1 other nodes, hence leading to subsets withat most P nodes."""
     return (1,sum(model.Z[i,k] for i in range(n)),P)
+
+def dic_initialize_subsets():
+    z = {} # need dictionary for pyomo
+    for i in range(n):
+        for k in range(K):
+            if (i+k+1)%K == 0:
+                z[i,k] = 1
+            else:
+                z[i,k] = 0
+    return z
+
+def dic_initialize_links():
+    y = {}
+    for i in range(n):
+        for j in range(n):
+            for k in range(K):
+                y[i,j,k] = 0
+    return y
+
     
+def test_Constraint_2(Z_dic):
+    for i in range(n):
+        if not sum(Z_dic[i,k] for k in range(K)) == 1:
+            print("Initial values violate constaint 2 at node "+str(i))
+
+def test_Constraint_5(Z_dic):
+    for k in range(K):
+        if not(sum(Z_dic[i,k] for i in range(n)) >=1 and sum(Z_dic[i,k] for i in range(n)) <= P):
+            print("Initial values violate constaint 5 ins subset "+str(k))
+
 def solve_lagrangian(instance_name):
     global n, K, P
 
@@ -86,16 +111,17 @@ def solve_lagrangian(instance_name):
     model = pyo.ConcreteModel()
     model.i = pyo.RangeSet(0,n-1)
     model.j = pyo.RangeSet(0,n-1)
-    model.k = pyo.RangeSet(0,K)
+    model.k = pyo.RangeSet(0,K-1)
 
     model.C = pyo.Param(model.i,model.j,initialize=C_dict)
-
-    model.Z = pyo.Var(model.i,model.k, domain=pyo.Binary)
-    model.Y = pyo.Var(model.i,model.j,model.k,domain=pyo.Binary)
-
+    Z_dic = dic_initialize_subsets()
+    test_Constraint_2(Z_dic)
+    test_Constraint_5(Z_dic)
+    model.Z = pyo.Var(model.i,model.k, domain=pyo.Binary,initialize=Z_dic)
+    Y_dic = dic_initialize_links()
+    model.Y = pyo.Var(model.i,model.j,model.k,domain=pyo.Binary,initialize=Y_dic)
 
     cost = sum(model.C[i,j]*model.Y[i,j,k] for i in range(n) for j in range(n) for k in range(K))
-    #cost = -model.Z[0,0]+1
 
     model.goal = pyo.Objective(expr = cost, sense = pyo.maximize)
 
@@ -104,8 +130,10 @@ def solve_lagrangian(instance_name):
     model.Constraint_4 = pyo.Constraint(model.i,model.j,model.k,rule=Constraint_4)    
     model.Constraint_5 = pyo.Constraint(model.k,rule=Constraint_5)
     opt = pyo.SolverFactory('glpk')
-    print(opt.solve(model))
-    #print(pyo.)
+    opt.options['tmlim'] = 60
+    model.display('test.txt')
+
+    opt.solve(model, tee=True)
     print(pyo.value(model.goal))
 
 
