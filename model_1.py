@@ -95,11 +95,9 @@ def solve_lagrangian(instance_name):
     global n, K, P
 
     C = read_instance(instance_name)
-    
-    #print("C", C)
-    
+        
     n = len(C)
-    K = 5
+    K = 3
     P = math.ceil(n / K)
    
     C_dict = {}
@@ -137,11 +135,8 @@ def solve_lagrangian(instance_name):
     print(pyo.value(model.goal))
 
 
-
-
 if __name__ == "__main__":
-    # matrix = read_instance("a280.tsp")
-    # matrix = read_instance("eil51.tsp")
-    # print(matrix)
-    file_name = "eil51.tsp"
+    # file_name = "a280.tsp"
+    #file_name = "eil51.tsp"
+    file_name = "custom.tsp"
     solve_lagrangian(file_name)

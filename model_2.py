@@ -70,6 +70,24 @@ def Constraint_13(model):
     """ Each subset must be used (K in the partition)."""
     return sum(model.Z[k,k] for k in range(n)) == K
 
+def dic_initialize_links():
+    y = {}
+    for i in range(n):
+        for j in range(n):
+            for k in range(K):
+                y[i,j,k] = 0
+    return y
+
+def dic_initialize_subsets():
+    z = {} # need dictionary for pyomo
+    for i in range(n):
+        for k in range(K):
+            if i == k:
+                z[i,k] = 1
+            else:
+                z[i,k] = 0
+    return z
+
 def solve_lagrangian(instance_name):
     global n, K, P
 
@@ -92,8 +110,10 @@ def solve_lagrangian(instance_name):
 
     model.C = pyo.Param(model.i,model.j,initialize=C_dict)
 
-    model.Z = pyo.Var(model.i,model.k, domain=pyo.Binary)
-    model.Y = pyo.Var(model.i,model.j,model.k,domain=pyo.Binary)
+    Z_dic = dic_initialize_subsets()
+    model.Z = pyo.Var(model.i,model.k, domain=pyo.Binary,initialize=Z_dic)
+    Y_dic = dic_initialize_links()
+    model.Y = pyo.Var(model.i,model.j,model.k,domain=pyo.Binary,initialize=Y_dic)
 
     model.goal = pyo.Objective(expr = calculate_cost(model.C,model.Y,n), sense = pyo.maximize)
 
@@ -102,16 +122,19 @@ def solve_lagrangian(instance_name):
     model.Constraint_11 = pyo.Constraint(model.i,model.j,model.k,rule=Constraint_11)    
     model.Constraint_12 = pyo.Constraint(model.k,rule=Constraint_12)
     model.Constraint_13 = pyo.Constraint(rule=Constraint_13)
+
     opt = pyo.SolverFactory('glpk')
-    opt.solve(model)
-    print(pyo.value(model.obj))
+    opt.options['tmlim'] = 60
+    model.display('test2.txt')
+
+    opt.solve(model, tee=True)
+    print(pyo.value(model.goal))
 
 
 
 
 if __name__ == "__main__":
-    # matrix = read_instance("a280.tsp")
-    # matrix = read_instance("eil51.tsp")
-    # print(matrix)
-    file_name = "eil51.tsp"
+    # file_name = "a280.tsp"
+    # file_name = "eil51.tsp"
+    file_name = "custom.tsp"
     solve_lagrangian(file_name)
