@@ -21,7 +21,8 @@ def read_instance(file_name):
 
         node_positions = np.empty(dimension, dtype='2i')
         for line in range(dimension):
-            buffer = file.readline().split()
+            buffer = ' '.join(file.readline().split())  # remove multiple white space (the .tsp file layout are not consistant)
+            buffer = buffer.split()
             node_positions[line] = (int(buffer[1]), int(buffer[2]))
 
         file.close()
@@ -40,31 +41,33 @@ def calculate_cost(C,Y,n):
     cost = 0
     for i in range(n):
         for j in range(n):
-            for k in range(0,min(i,j)):
+            for k in range(min(i,j)+1):
                 cost += C[i,j]*Y[i,j,k]
     return cost
 
 def Constraint_9(model,i):
     """ all nodes must belong to one and only one subset"""
     # return (0,sum(model.Z[i,k] for k in range(i)),1)
-    return sum(model.Z[i,k] for k in range(i)) + model.Z[0,0] == 1 + model.Z[0,0]
-
+    return sum(model.Z[i,k] for k in range(i+1)) == 1
 
 def Constraint_10(model,i,j,k):
-    """ Link y and z variables"""
-    if(k <= min(i,j)):
+    """ Link i and z variables"""
+    if k <= min(i, j):
         return model.Y[i,j,k] <= model.Z[i,k] 
     return pyo.Constraint.Skip
 
 def Constraint_11(model,i,j,k):
     """ Link y and z variables"""
-    if(k <= min(i,j)):
+    if k <= min(i, j):
         return model.Y[i,j,k] <= model.Z[j,k]    
     return pyo.Constraint.Skip
   
 def Constraint_12(model,k):
     """ Make sure a node is representative if and only if zkk is equal to one, and that each node represents at most P − 1 other nodes, hence leading to subsets withat most P nodes."""
-    return sum(model.Z[i,k] for i in range(k,n)) <= (P-1) * model.Z[k,k]
+    if k == n-1:
+        return pyo.Constraint.Skip
+
+    return sum(model.Z[i,k] for i in range(k+1,n)) <= (P-1) * model.Z[k,k]
     
 def Constraint_13(model):
     """ Each subset must be used (K in the partition)."""
@@ -74,15 +77,16 @@ def dic_initialize_links():
     y = {}
     for i in range(n):
         for j in range(n):
-            for k in range(K):
+            for k in range(n):
                 y[i,j,k] = 0
     return y
 
 def dic_initialize_subsets():
     z = {} # need dictionary for pyomo
+    # z = np.empty(shape=(n,n))
     for i in range(n):
-        for k in range(K):
-            if i == k:
+        for k in range(n):
+            if k == i%K:
                 z[i,k] = 1
             else:
                 z[i,k] = 0
@@ -94,9 +98,9 @@ def solve_lagrangian(instance_name):
     C = read_instance(instance_name)
 
     n = len(C)
-    K = 5
+    K = 2
     P = math.ceil(n / K)
-   
+
     C_dict = {}
     for i in range(0,n):
         for j in range(0,n):
@@ -111,9 +115,9 @@ def solve_lagrangian(instance_name):
     model.C = pyo.Param(model.i,model.j,initialize=C_dict)
 
     Z_dic = dic_initialize_subsets()
-    model.Z = pyo.Var(model.i,model.k, domain=pyo.Binary,initialize=Z_dic)
+    model.Z = pyo.Var(model.i,model.k, domain=pyo.Binary, initialize=Z_dic)
     Y_dic = dic_initialize_links()
-    model.Y = pyo.Var(model.i,model.j,model.k,domain=pyo.Binary,initialize=Y_dic)
+    model.Y = pyo.Var(model.i,model.j,model.k,domain=pyo.Binary, initialize=Y_dic)
 
     model.goal = pyo.Objective(expr = calculate_cost(model.C,model.Y,n), sense = pyo.maximize)
 
@@ -130,10 +134,13 @@ def solve_lagrangian(instance_name):
     opt.solve(model, tee=True)
     print(pyo.value(model.goal))
 
+    model.display('solution2.txt')
+
 
 
 
 if __name__ == "__main__":
+
     # file_name = "a280.tsp"
     # file_name = "eil51.tsp"
     file_name = "custom.tsp"

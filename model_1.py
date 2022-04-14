@@ -51,7 +51,7 @@ def Constraint_2(model,i):
     return sum(model.Z[i,k] for k in range(K)) == 1
  
 def Constraint_3(model,i,j,k):
-    """ Link y and z variables"""
+    """ Link i and z variables"""
     return model.Y[i,j,k] <= model.Z[i,k] 
 
 def Constraint_4(model,i,j,k):
@@ -60,13 +60,13 @@ def Constraint_4(model,i,j,k):
   
 def Constraint_5(model,k):
     """ Make sure a node is representative if and only if zkk is equal to one, and that each node represents at most P − 1 other nodes, hence leading to subsets withat most P nodes."""
-    return (1,sum(model.Z[i,k] for i in range(n)),P)
+    return (1, sum(model.Z[i,k] for i in range(n)), P)
 
 def dic_initialize_subsets():
     z = {} # need dictionary for pyomo
     for i in range(n):
         for k in range(K):
-            if (i+k+1)%K == 0:
+            if k == i%K:
                 z[i,k] = 1
             else:
                 z[i,k] = 0
@@ -99,7 +99,7 @@ def solve_lagrangian(instance_name):
     n = len(C)
     K = 3
     P = math.ceil(n / K)
-   
+
     C_dict = {}
     for i in range(0,n):
         for j in range(0,n):
@@ -133,6 +133,8 @@ def solve_lagrangian(instance_name):
 
     opt.solve(model, tee=True)
     print(pyo.value(model.goal))
+
+    model.display('solution1.txt')
 
 
 if __name__ == "__main__":
