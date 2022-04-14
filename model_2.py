@@ -37,12 +37,12 @@ def read_instance(file_name):
         print("Error reading file.")
     return cost_matrix
 
-def calculate_cost(C,Y,n):
+def calculate_cost(model):
     cost = 0
     for i in range(n):
-        for j in range(n):
+        for j in range(i):
             for k in range(min(i,j)+1):
-                cost += C[i,j]*Y[i,j,k]
+                cost += model.C[i,j]*model.Y[i,j,k]
     return cost
 
 def Constraint_9(model,i):
@@ -52,13 +52,13 @@ def Constraint_9(model,i):
 
 def Constraint_10(model,i,j,k):
     """ Link i and z variables"""
-    if k <= min(i, j):
+    if k <= min(i, j) and j<i:
         return model.Y[i,j,k] <= model.Z[i,k] 
     return pyo.Constraint.Skip
 
 def Constraint_11(model,i,j,k):
     """ Link y and z variables"""
-    if k <= min(i, j):
+    if k <= min(i, j) and j<i:
         return model.Y[i,j,k] <= model.Z[j,k]    
     return pyo.Constraint.Skip
   
@@ -98,7 +98,7 @@ def solve_lagrangian(instance_name):
     C = read_instance(instance_name)
 
     n = len(C)
-    K = 2
+    K = 3
     P = math.ceil(n / K)
 
     C_dict = {}
@@ -119,7 +119,7 @@ def solve_lagrangian(instance_name):
     Y_dic = dic_initialize_links()
     model.Y = pyo.Var(model.i,model.j,model.k,domain=pyo.Binary, initialize=Y_dic)
 
-    model.goal = pyo.Objective(expr = calculate_cost(model.C,model.Y,n), sense = pyo.maximize)
+    model.goal = pyo.Objective(expr = calculate_cost, sense = pyo.maximize)
 
     model.Constraint_9 = pyo.Constraint(model.i,rule=Constraint_9)
     model.Constraint_10 = pyo.Constraint(model.i,model.j,model.k,rule=Constraint_10)
@@ -141,7 +141,7 @@ def solve_lagrangian(instance_name):
 
 if __name__ == "__main__":
 
-    # file_name = "a280.tsp"
-    # file_name = "eil51.tsp"
+    #file_name = "a280.tsp"
+    #file_name = "eil51.tsp"
     file_name = "custom.tsp"
     solve_lagrangian(file_name)

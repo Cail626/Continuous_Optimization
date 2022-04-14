@@ -5,6 +5,9 @@ import sys
 
 global n, K, P
 
+#CONVENTION
+#Edge : j<i
+
 def read_instance(file_name):
     # Read the instance and compute the instance in dictionary
     #   Pyomo needs dictionary to compute
@@ -37,10 +40,11 @@ def read_instance(file_name):
         print("Error reading file.")
     return cost_matrix
 
+
 def calculate_cost(model):
     cost = 0
     for i in range(n):
-        for j in range(n):
+        for j in range(i):
             for k in range(K):
                 cost += model.C[i,j]*model.Y[i,j,k]
     return cost
@@ -52,11 +56,17 @@ def Constraint_2(model,i):
  
 def Constraint_3(model,i,j,k):
     """ Link i and z variables"""
-    return model.Y[i,j,k] <= model.Z[i,k] 
+    if(j<i):
+        return model.Y[i,j,k] <= model.Z[i,k] 
+    else:
+        return pyo.Constraint.Skip
 
 def Constraint_4(model,i,j,k):
     """ Link y and z variables"""
-    return model.Y[i,j,k] <= model.Z[j,k]    
+    if(j<i):
+        return model.Y[i,j,k] <= model.Z[j,k]
+    else:
+        return pyo.Constraint.Skip 
   
 def Constraint_5(model,k):
     """ Make sure a node is representative if and only if zkk is equal to one, and that each node represents at most P − 1 other nodes, hence leading to subsets withat most P nodes."""
@@ -96,6 +106,7 @@ def solve_lagrangian(instance_name):
 
     C = read_instance(instance_name)
         
+    
     n = len(C)
     K = 3
     P = math.ceil(n / K)
@@ -119,9 +130,7 @@ def solve_lagrangian(instance_name):
     Y_dic = dic_initialize_links()
     model.Y = pyo.Var(model.i,model.j,model.k,domain=pyo.Binary,initialize=Y_dic)
 
-    cost = sum(model.C[i,j]*model.Y[i,j,k] for i in range(n) for j in range(n) for k in range(K))
-
-    model.goal = pyo.Objective(expr = cost, sense = pyo.maximize)
+    model.goal = pyo.Objective(expr = calculate_cost, sense = pyo.maximize)
 
     model.Constraint_2 = pyo.Constraint(model.i,rule=Constraint_2)
     model.Constraint_3 = pyo.Constraint(model.i,model.j,model.k,rule=Constraint_3)
@@ -138,7 +147,7 @@ def solve_lagrangian(instance_name):
 
 
 if __name__ == "__main__":
-    # file_name = "a280.tsp"
+    #file_name = "a280.tsp"
     #file_name = "eil51.tsp"
     file_name = "custom.tsp"
     solve_lagrangian(file_name)
