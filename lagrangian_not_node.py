@@ -77,7 +77,7 @@ def dic_initialize_links():
 
 def dic_initialize_subsets():
     z = {} # need dictionary for pyomo
-    # z = np.empty(shape=(n,n))
+
     for i in range(n):
         for k in range(n):
             if k == i%K:
@@ -85,6 +85,94 @@ def dic_initialize_subsets():
             else:
                 z[i,k] = 0
     return z
+
+def fix_constraints(Z: np.ndarray) -> np.ndarray:
+    """
+    Fix the parameter Z for the constraints 9 and 13
+    :param Z: Parameter Z of the problem. See paper.
+    """
+
+    ### Fix Constraint 9 :
+
+    # Will check if there is many zero on the lower triangular
+    # matrix and will keep only the rightmost one.
+    # (explanation is following after the example)
+    ##  Example :
+    # [1, ., ., ., .]
+    # [0, 1, ., ., .]
+    # [0, 1, 1, ., .]
+    # [0, 0, 1, 1, .]
+    # [1, 0, 0, 0, 1]
+    ##  will become :
+    # [1, ., ., ., .]
+    # [0, 1, ., ., .]
+    # [0, 0, 1, ., .]
+    # [0, 0, 0, 1, .]
+    # [0, 0, 0, 0, 1]
+    # If the line of the lower triangle matrix is full of zero,
+    # it puts a zero on diagonal
+    ## Example :
+    # [0, ., ., ., .]
+    # [0, 0, ., ., .]
+    # [0, 0, 0, ., .]
+    # [0, 0, 0, 0, .]
+    # [0, 0, 0, 0, 0]
+    ## will become :
+    # [1, ., ., ., .]
+    # [0, 1, ., ., .]
+    # [0, 0, 1, ., .]
+    # [0, 0, 0, 1, .]
+    # [0, 0, 0, 0, 1]
+
+    for i in range(n):
+        null = True
+        for k in range(i, -1, -1):
+            if Z[i, k] == 1:
+                null = False
+                Z[i, :k] = 0
+        if null:
+            Z[i, i] = 1
+    ### End constraint 9
+
+
+
+    ### Fix Constraint 13 :
+    # Will compare the sum of the diagonal (nb_subsets) to the
+    # number of subset we need (K)
+    #  If there is too many ones on the diagonal, we move the
+    # ones on the diagonal on their respective line. We have to
+    # not open a new subset, and we choose heuristically
+    # the most filled subset (but not full).
+    #  If there is too few ones on the diagonal, we add ones
+    # on the diagonal.
+    #  For the both case we change the matrix from the lower part
+    # of the lower triangle matrix
+    nb_subsets = sum(Z[k, k] for k in range(n))
+    col = np.array([(P - sum(Z[i:, i])) * Z[i, i] for i in range(n)])
+
+    if nb_subsets > K:
+        for i in range(n - 1, -1, -1):
+            if nb_subsets <= K: break
+            if Z[i, i] == 1:
+                Z[i, i] = 0
+                nb_subsets -= 1
+
+                disp_subsets = np.where(col > 0)[0]
+                col_min = disp_subsets[np.argmin(col[disp_subsets])]
+                Z[i, col_min] = 1
+                col[col_min] -= 1
+
+    elif nb_subsets < K:
+        for i in range(n - 1, -1, -1):
+            if nb_subsets >= K: break
+            if Z[i, i] == 0:
+                Z[i, i] = 1
+                nb_subsets += 1
+
+                Z[i, :i] = 0
+
+    # End Constraint 13
+    return Z
 
 def solve_lagrangian(instance_name):
     global n, K, P
@@ -132,7 +220,6 @@ def solve_lagrangian(instance_name):
     print(pyo.value(model.goal))
 
     model.display('solution2.txt')
-
 
 
 
