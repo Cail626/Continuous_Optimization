@@ -42,6 +42,7 @@ def read_instance(file_name):
     return cost_matrix
 
 def calculate_cost(model):
+    global lambda1, lambda2
     cost = 0
     C9 = np.empty(shape=n, dtype=int)
     for i in range(n):
@@ -221,18 +222,18 @@ def compute_C13(Z):
     return sum(Z[k,k] for k in range(n)) - K
 
 def update_lambdas(lower_bound, upper_bound, Z):
-    global lambda1, lambda2,  C9, C13
+    global lambda1, lambda2,  C9, C13, theta
     C9 = compute_C9(Z)
     C13 = compute_C13(Z)
     
     if sum([C9[i]**2 for i in range(n)]) == 0:
         t1 = 0
     else:
-        t1 = (lower_bound-upper_bound)/sum([C9[i]**2 for i in range(n)])
+        t1 = theta*(lower_bound-upper_bound)/sum([C9[i]**2 for i in range(n)])
     if C13 == 0:
         t2 = 0
     else:
-        t2 = (lower_bound-upper_bound)/(C13**2)
+        t2 = theta*(lower_bound-upper_bound)/(C13**2)
         
     for i in range(n):
         lambda1[i] += t1*C9[i]
@@ -293,8 +294,8 @@ def solve_lagrangian(p, instance_name, debug=False, verbose=False):
     lambda1_init = lambda1.copy()
     lambda2 = 1
     lambda2_init = lambda2
-    theta = 0.1
-    min_it = 10
+    theta = 10.0
+    min_it = 100
     lower_bound, upper_bound  =  0, np.sum(C)
     best_lower_bound, best_upper_bound = 0, np.sum(C)
     n_it = 0
@@ -326,8 +327,8 @@ def solve_lagrangian(p, instance_name, debug=False, verbose=False):
             #lower_bound_init = lower_bound
         
         print("elapsed time = %f"%elapsed)
-        # print(lambda1)
-        # print(lambda2)
+        #print(lambda1)
+        #print(lambda2)
         print(lower_bound)
         print(upper_bound)
 
