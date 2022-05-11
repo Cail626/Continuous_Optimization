@@ -2,7 +2,7 @@ import math
 
 import pyomo.environ as pyo
 import numpy as np
-import time   
+import time
 
 global n, K, P, lambda1, lambda2, C9, C13
 
@@ -88,8 +88,9 @@ def dic_initialize_subsets():
                 z[i,k] = 0
     return z
 
-def update_lambdas():
-    lambda1, lambda2,  C9, C13
+def update_lambdas(lower_bound, upper_bound):
+    global lambda1, lambda2,  C9, C13
+
     t1 = (lower_bound-upper_bound)/sum([C9[i]**2 for i in range(n)])
     t2 = (lower_bound-upper_bound)/(C13**2)
     for i in range(n):
@@ -143,7 +144,7 @@ def solve_lagrangian(instance_name):
         upper_bound = solve_relaxation(model) # we maximise thus the upper bound is given by the relaxation
         elapsed = time.time() - start #update the time elapsed
   
-def solve_relaxation(model)
+def solve_relaxation(model):
 
     opt.solve(model, tee=True)
     return pyo.value(model.goal)
