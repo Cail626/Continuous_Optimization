@@ -3,6 +3,8 @@ import math
 import pyomo.environ as pyo
 import numpy as np
 import time
+import sys
+import os
 
 global n, K, P, k_global, C
 global lambda1, lambda2, theta
@@ -378,19 +380,23 @@ def find_feasible_solution(Z):
                 cost += C[i, j] * Y[i, j, k]
     return cost
 
-def solve_lagrangian(instance_name, debug=False):
+def solve_lagrangian(p,instance_name, debug=False):
     global n, K, P, k_global, C
     global lambda1, lambda2, theta
 
     C = read_instance(instance_name)
 
     n = len(C)
-    K = 3
-    P = math.ceil(n / K)
     
     lambda1 = [1 for _ in range(n)]
+    lambda1_init = lambda1.copy()
     lambda2 = 1
-    theta = 0.1
+    lambda2_init = lambda2
+    theta = 1.0
+    min_it = 10
+    
+    P = int(math.ceil(n / K)*p)
+    print('P: ', P)
 
     C_dict = {}
     for i in range(n):
@@ -403,11 +409,16 @@ def solve_lagrangian(instance_name, debug=False):
     elapsed = 0  # the variable that holds the number of seconds elapsed.
 
     lower_bound, upper_bound  =  0, np.sum(C)
+    best_lower_bound, best_upper_bound = 0, np.sum(C)
 
     Z = np.ndarray(shape=(n,n))
+    Z_init = Z.copy()
     Y = np.ndarray(shape=(n,n,n))
+    Y_init = Y.copy()
 
-    while elapsed < 300 and lower_bound / upper_bound < 0.999:
+    n_it = 0
+
+    while elapsed < 600 and lower_bound / upper_bound < 0.999:
 
         lambda1_buffer, lambda2_buffer = lambda1.copy(), lambda2
         ## UPPER BOUND
@@ -420,7 +431,6 @@ def solve_lagrangian(instance_name, debug=False):
         ## LOWER BOUND
         Z_low = Z.copy()
         lower_bound = find_feasible_solution(Z_low) # Z reshaped to be a numpy array
-
         update_lambdas(lower_bound, upper_bound, Z)
         # print(Z)
         # print(Z_low)
@@ -431,6 +441,12 @@ def solve_lagrangian(instance_name, debug=False):
         # printY(fix_constraints(Z.copy()))
 
         elapsed = time.time() - start  # update the time elapsed
+        n_it += 1
+        
+        if(n_it == 1):
+            upper_bound_init = upper_bound
+            #lower_bound_init = lower_bound
+        
         print("elapsed time = %f"%elapsed)
         # print(lambda1)
         # print(lambda2)
@@ -446,14 +462,48 @@ def solve_lagrangian(instance_name, debug=False):
             else:
                 print("end with theta value of %f"%theta)
                 break
+        
+        if(lower_bound>best_lower_bound):
+            best_lower_bound = lower_bound
+        if(upper_bound<best_upper_bound):
+            best_upper_bound = upper_bound
+        
+        if(n_it>min_it and upper_bound>upper_bound_init):
+            print("-----------------")
+            print("Divergence detected")
+            Z = Z_init.copy()
+            Y = Y_init.copy()
+            lambda1 = lambda1_init.copy()
+            lambda2 = lambda2_init
+            n_it = 0
+            theta *= 0.5
+            print("New theta: ", theta)
+            print("-----------------")
+            
+    
+    print("Saving file")
+    with open("result"+os.sep+"result_by_node_"+file_name.split('.')[0]+"_"+str(K)+"_"+str(P)+".txt",'w') as f:
+        elapsed = time.time() - start
+        
+        f.write(str(best_lower_bound)+" "+ str(best_upper_bound)+" "+str(elapsed))
+        
 
 def printY(Y):
     for k in range(K):
         print(Y[:,:,k])
 
 if __name__ == "__main__":
+    
+    global K
+    
     # file_name = "a280.tsp"
     # file_name = "eil51.tsp"
-    file_name = "custom.tsp"
-    solve_lagrangian(file_name, debug=False)
+    #file_name = "custom.tsp"
+    
+    file_name = sys.argv[1]
+    K = int(sys.argv[2])
+    p = float(sys.argv[3])
+    
+    
+    solve_lagrangian(p,file_name, debug=False)
 

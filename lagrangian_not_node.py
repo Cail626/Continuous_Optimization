@@ -2,8 +2,12 @@ import math
 
 import pyomo.environ as pyo
 import numpy as np
+import time
+import sys
+import os
 
-global n, K, P
+global n, K, P, C
+global lambda1, lambda2, C9, C13, theta
 
 def read_instance(file_name):
     # Read the instance and compute the instance in dictionary
@@ -87,15 +91,16 @@ def dic_initialize_subsets():
                 z[i,k] = 0
     return z
 
-def find_feasible_solution(model):
-    Z = np.array(pyo.value(model.Z[:,:])).reshape((n,n))
+def find_feasible_solution(Z):
+    global C
+
     Y = fix_constraints(Z)
 
     cost = 0
     for i in range(n):
         for j in range(i):
             for k in range(j + 1):
-                cost += model.C[i, j] * Y[i, j, k]
+                cost += C[i, j] * Y[i, j, k]
     return cost
 
 def fix_constraints(Z: np.ndarray) -> np.ndarray:
@@ -191,7 +196,7 @@ def fix_constraints(Z: np.ndarray) -> np.ndarray:
 
     # End Constraint 13
 
-    return output_Y
+    return output_Y(Z)
 
 def output_Y(Z: np.ndarray) -> np.ndarray:
     # Apply Constraints 10 and 11 to Y
@@ -203,25 +208,78 @@ def output_Y(Z: np.ndarray) -> np.ndarray:
                 Y[i, j, k] = min(Z[i,k], Z[j,k])
     return Y
 
-def update_lambdas(lower_bound, upper_bound):
-    global lambda1, lambda2,  C9, C13
+def compute_C9(Z):
+    res = np.zeros(shape=n, dtype=int)
 
-    t1 = (lower_bound-upper_bound)/sum([C9[i]**2 for i in range(n)])
-    t2 = (lower_bound-upper_bound)/(C13**2)
+    for i in range(n):
+        for k in range(i+1):
+            res[i] += Z[i,k]
+
+    return res-1
+
+def compute_C13(Z):
+    return sum(Z[k,k] for k in range(n)) - K
+
+def update_lambdas(lower_bound, upper_bound, Z):
+    global lambda1, lambda2,  C9, C13
+    C9 = compute_C9(Z)
+    C13 = compute_C13(Z)
+    
+    if sum([C9[i]**2 for i in range(n)]) == 0:
+        t1 = 0
+    else:
+        t1 = (lower_bound-upper_bound)/sum([C9[i]**2 for i in range(n)])
+    if C13 == 0:
+        t2 = 0
+    else:
+        t2 = (lower_bound-upper_bound)/(C13**2)
+        
     for i in range(n):
         lambda1[i] += t1*C9[i]
     lambda2 += t2*C13
 
-def solve_lagrangian(instance_name, debug=False, verbose=True):
-    global n, K, P
-    global lambda1, lambda2, C9, C13
+def solve_relaxation(C_dict, debug=False):
+    ### PYOMO MODEL ###
+
+    model = pyo.ConcreteModel()
+    model.i = pyo.RangeSet(0,n-1)
+    model.j = pyo.RangeSet(0,n-1)
+    model.k = pyo.RangeSet(0,n-1)
+
+    model.C = pyo.Param(model.i,model.j,initialize=C_dict)
+    
+    Z_dic = dic_initialize_subsets()
+    model.Z = pyo.Var(model.i,model.k, domain=pyo.Binary, initialize=Z_dic)
+    Y_dic = dic_initialize_links()
+    model.Y = pyo.Var(model.i,model.j,model.k,domain=pyo.Binary, initialize=Y_dic)
+
+    model.goal = pyo.Objective(expr = calculate_cost(model), sense = pyo.maximize)
+
+    model.Constraint_10 = pyo.Constraint(model.i,model.j,model.k,rule=Constraint_10)
+    model.Constraint_11 = pyo.Constraint(model.i,model.j,model.k,rule=Constraint_11)    
+    model.Constraint_12 = pyo.Constraint(model.k,rule=Constraint_12)
+
+    ### SOLVING ###
+    opt = pyo.SolverFactory('glpk')  # GLPK OPTION
+    #opt.options['tmlim'] = iteration_time  # LIMITATION COMPUTATION TIME
+    opt.solve(model, tee=False)
+
+    if debug:
+        model.display('before_solving_lagrangian_not_node.txt')
+        
+    return pyo.value(model.goal), np.array(pyo.value(model.Z[:,:])).reshape(n,n), np.array(pyo.value(model.Y[:,:,:])).reshape(n,n,n)
+
+
+
+def solve_lagrangian(p, instance_name, debug=False, verbose=False):
+    global n, K, P,C
+    global lambda1, lambda2, C9, C13, theta
     
     ### INITIALIZE PARAMETERS ###
     C = read_instance(instance_name)
 
     n = len(C)  # Number of nodes
-    K = 3  # Number of subsets
-    P = math.ceil(n / K)  # Maximum nodes by subset
+    P = int(p*math.ceil(n / K))  # Maximum nodes by subset
 
     # Cost matrix
     #TODO: Directly have dict from read_instance function
@@ -232,55 +290,92 @@ def solve_lagrangian(instance_name, debug=False, verbose=True):
 
     # Lambda relaxation
     lambda1 = [1 for _ in range(n)]
+    lambda1_init = lambda1.copy()
     lambda2 = 1
+    lambda2_init = lambda2
+    theta = 0.1
+    min_it = 10
+    lower_bound, upper_bound  =  0, np.sum(C)
+    best_lower_bound, best_upper_bound = 0, np.sum(C)
+    n_it = 0
 
-    ### PYOMO MODEL ###
-
-    model = pyo.ConcreteModel()
-    model.i = pyo.RangeSet(0,n-1)
-    model.j = pyo.RangeSet(0,n-1)
-    model.k = pyo.RangeSet(0,n-1)
-
-    model.C = pyo.Param(model.i,model.j,initialize=C_dict)
-
-    Z_dic = dic_initialize_subsets()
-    model.Z = pyo.Var(model.i,model.k, domain=pyo.Binary, initialize=Z_dic)
-    Y_dic = dic_initialize_links()
-    model.Y = pyo.Var(model.i,model.j,model.k,domain=pyo.Binary, initialize=Y_dic)
-
-    model.goal = pyo.Objective(expr = calculate_cost, sense = pyo.maximize)
-
-    model.Constraint_10 = pyo.Constraint(model.i,model.j,model.k,rule=Constraint_10)
-    model.Constraint_11 = pyo.Constraint(model.i,model.j,model.k,rule=Constraint_11)    
-    model.Constraint_12 = pyo.Constraint(model.k,rule=Constraint_12)
-
-    ### SOLVING ###
-    opt = pyo.SolverFactory('glpk')  # GLPK OPTION
-    #opt.options['tmlim'] = iteration_time  # LIMITATION COMPUTATION TIME
-
-    if debug:
-        model.display('before_solving_lagrangian_not_node.txt')
+    Z = np.ndarray(shape=(n,n))
+    Z_init = Z.copy()
+    Y = np.ndarray(shape=(n,n,n))
+    Y_init = Y.copy()
 
     start = time.time()  # the variable that holds the starting time the code for the clock come from https://stackoverflow.com/questions/13893287/python-time-limit
     elapsed = 0  # the variable that holds the number of seconds elapsed.
 
-    while elapsed < 300 and lower_bound / upper_bound > 0.999:
-        upper_bound = solve_relaxation(model)  # we maximise thus the upper bound is given by the relaxation
+    while elapsed < 600 and lower_bound / upper_bound < 0.999:
+        
+        lambda1_buffer, lambda2_buffer = lambda1.copy(), lambda2
+        
+        upper_bound,Z,Y = solve_relaxation(C_dict)  # we maximise thus the upper bound is given by the relaxation
+
+        ## LOWER BOUND
+        Z_low = Z.copy()
+        lower_bound = find_feasible_solution(Z_low)
+        update_lambdas(lower_bound, upper_bound,Z)
+        
         elapsed = time.time() - start  # update the time elapsed
-        lower_bound = find_feasible_solution(model)
-        update_lambdas(lower_bound, upper_bound)
+        n_it += 1
+        
+        if(n_it == 1):
+            upper_bound_init = upper_bound
+            #lower_bound_init = lower_bound
+        
+        print("elapsed time = %f"%elapsed)
+        # print(lambda1)
+        # print(lambda2)
+        print(lower_bound)
+        print(upper_bound)
 
-    if verbose:
-        print(pyo.value(model.goal))
+        if lambda1_buffer == lambda1 and lambda2_buffer == lambda2:
+            print("stalling...", end="")
 
-    if debug:
-        model.display('after_solving_lagrangian_not_node.txt')
+            if theta >= 0.001:
+                theta *= 0.7
+                print("change theta value to %f"%theta)
+            else:
+                print("end with theta value of %f"%theta)
+                break
+        
+        if(lower_bound>best_lower_bound):
+            best_lower_bound = lower_bound
+        if(upper_bound<best_upper_bound):
+            best_upper_bound = upper_bound
+        
+        if(n_it>min_it and upper_bound>upper_bound_init):
+            print("-----------------")
+            print("Divergence detected")
+            Z = Z_init.copy()
+            Y = Y_init.copy()
+            lambda1 = lambda1_init.copy()
+            lambda2 = lambda2_init
+            n_it = 0
+            theta *= 0.5
+            print("New theta: ", theta)
+            print("-----------------")
 
+    print("Saving file")
+    with open("result"+os.sep+"result_by_node_"+file_name.split('.')[0]+"_"+str(K)+"_"+str(P)+".txt",'w') as f:
+        elapsed = time.time() - start
+        
+        f.write(str(best_lower_bound)+" "+ str(best_upper_bound)+" "+str(elapsed))
 
 
 if __name__ == "__main__":
-
-    #file_name = "a280.tsp"
-    #file_name = "eil51.tsp"
-    file_name = "custom.tsp"
-    solve_lagrangian(file_name)
+    
+    global K
+    
+    # file_name = "a280.tsp"
+    # file_name = "eil51.tsp"
+    #file_name = "custom.tsp"
+    
+    file_name = sys.argv[1]
+    K = int(sys.argv[2])
+    p = float(sys.argv[3])
+    
+    
+    solve_lagrangian(p,file_name, debug=False)
