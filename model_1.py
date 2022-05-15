@@ -1,8 +1,9 @@
 import math
 import pyomo.environ as pyo
 import numpy as np
+import time
 import sys
-
+import os
 global n, K, P
 
 #CONVENTION
@@ -14,7 +15,6 @@ def read_instance(file_name):
     cost_matrix = -1
     try:
         file = open("Instances/{}".format(file_name), 'r')
-        
         name = file.readline().split(":")
         comment = file.readline().split(":")
         tsp = file.readline().split(":")
@@ -101,16 +101,14 @@ def test_Constraint_5(Z_dic):
         if not(sum(Z_dic[i,k] for i in range(n)) >=1 and sum(Z_dic[i,k] for i in range(n)) <= P):
             print("Initial values violate constaint 5 ins subset "+str(k))
 
-def solve_lagrangian(instance_name):
+def solve_lagrangian(p, instance_name):
     global n, K, P
+    start = time.time()  # the variable that holds the starting time the code for the clock come from https://stackoverflow.com/questions/13893287/python-time-limit
 
     C = read_instance(instance_name)
-        
     
     n = len(C)
-    K = 3
-    P = math.ceil(n / K)
-
+    P = int(p*math.ceil(n / K))
     C_dict = {}
     for i in range(0,n):
         for j in range(0,n):
@@ -130,24 +128,37 @@ def solve_lagrangian(instance_name):
     Y_dic = dic_initialize_links()
     model.Y = pyo.Var(model.i,model.j,model.k,domain=pyo.Binary,initialize=Y_dic)
 
-    model.goal = pyo.Objective(expr = calculate_cost, sense = pyo.maximize)
+    model.goal = pyo.Objective(rule = calculate_cost, sense = pyo.maximize)
 
     model.Constraint_2 = pyo.Constraint(model.i,rule=Constraint_2)
     model.Constraint_3 = pyo.Constraint(model.i,model.j,model.k,rule=Constraint_3)
     model.Constraint_4 = pyo.Constraint(model.i,model.j,model.k,rule=Constraint_4)    
     model.Constraint_5 = pyo.Constraint(model.k,rule=Constraint_5)
     opt = pyo.SolverFactory('glpk')
-    opt.options['tmlim'] = 60
-    model.display('test.txt')
+    opt.options['tmlim'] = 600
+    #model.display('test.txt')
 
     opt.solve(model, tee=True)
-    print(pyo.value(model.goal))
+    #print(pyo.value(model.goal))
+    #model.display('solution1.txt')
 
-    model.display('solution1.txt')
-
-
+    if not os.path.exists("result"):
+        os.mkdir(folder)
+    with open("result"+os.sep+"model_1_"+file_name.split('.')[0]+"_"+str(K)+"_"+str(P)+".txt",'w') as f:
+        elapsed = time.time() - start
+        f.write(str(pyo.value(model.goal))+" "+ str(elapsed))
+  
+    
 if __name__ == "__main__":
     #file_name = "a280.tsp"
     #file_name = "eil51.tsp"
-    file_name = "custom.tsp"
-    solve_lagrangian(file_name)
+    global K
+    
+    # file_name = "a280.tsp"
+    # file_name = "eil51.tsp"
+    #file_name = "custom.tsp"
+    
+    file_name = sys.argv[1]
+    K = int(sys.argv[2])
+    p = float(sys.argv[3])
+    solve_lagrangian(p, file_name)

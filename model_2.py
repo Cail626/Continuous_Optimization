@@ -1,8 +1,9 @@
 import math
-
 import pyomo.environ as pyo
 import numpy as np
-
+import time
+import sys
+import os
 global n, K, P
 
 def read_instance(file_name):
@@ -92,8 +93,10 @@ def dic_initialize_subsets():
                 z[i,k] = 0
     return z
 
-def solve_lagrangian(instance_name):
+def solve_lagrangian(p, instance_name):
     global n, K, P
+    start = time.time()  # the variable that holds the starting time the code for the clock come from https://stackoverflow.com/questions/13893287/python-time-limit
+
 
     C = read_instance(instance_name)
 
@@ -119,7 +122,7 @@ def solve_lagrangian(instance_name):
     Y_dic = dic_initialize_links()
     model.Y = pyo.Var(model.i,model.j,model.k,domain=pyo.Binary, initialize=Y_dic)
 
-    model.goal = pyo.Objective(expr = calculate_cost, sense = pyo.maximize)
+    model.goal = pyo.Objective(rule = calculate_cost, sense = pyo.maximize)
 
     model.Constraint_9 = pyo.Constraint(model.i,rule=Constraint_9)
     model.Constraint_10 = pyo.Constraint(model.i,model.j,model.k,rule=Constraint_10)
@@ -128,20 +131,27 @@ def solve_lagrangian(instance_name):
     model.Constraint_13 = pyo.Constraint(rule=Constraint_13)
 
     opt = pyo.SolverFactory('glpk')
-    opt.options['tmlim'] = 60
-    model.display('test2.txt')
-
+    opt.options['tmlim'] = 600
+    #model.display('test2.txt')
     opt.solve(model, tee=True)
-    print(pyo.value(model.goal))
+    #print(pyo.value(model.goal))
+    #model.display('solution2.txt')
 
-    model.display('solution2.txt')
 
-
+    if not os.path.exists("result"):
+        os.mkdir(folder)
+    with open("result"+os.sep+"model_2_"+file_name.split('.')[0]+"_"+str(K)+"_"+str(P)+".txt",'w') as f:
+        elapsed = time.time() - start
+        f.write(str(pyo.value(model.goal))+" "+ str(elapsed))
 
 
 if __name__ == "__main__":
 
     #file_name = "a280.tsp"
     #file_name = "eil51.tsp"
-    file_name = "custom.tsp"
-    solve_lagrangian(file_name)
+    global K
+    
+    file_name = sys.argv[1]
+    K = int(sys.argv[2])
+    p = float(sys.argv[3])
+    solve_lagrangian(p, file_name)
