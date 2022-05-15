@@ -103,6 +103,8 @@ def solve_lagrangian(p, instance_name):
     n = len(C)
     K = 3
     P = math.ceil(n / K)
+    if P == int((p+0.5)*math.ceil(n / K)): #avoid running the same code twice
+        exit()
 
     C_dict = {}
     for i in range(0,n):
