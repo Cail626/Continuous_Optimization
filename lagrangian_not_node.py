@@ -44,13 +44,15 @@ def read_instance(file_name):
 def calculate_cost(model):
     global lambda1, lambda2
     cost = 0
-    C9 = np.empty(shape=n, dtype=int)
+
+    C9 = [(sum(pyo.value(model.Z[i,k]) for k in range(i+1))-1) for i in range(n)]
     for i in range(n):
-        C9[i] = (sum(pyo.value(model.Z[i,k]) for k in range(i+1))-1)
         for j in range(i):
             for k in range(min(i,j)+1):
-                cost += model.C[i,j]*model.Y[i,j,k]
-    C13 = (sum(model.Z[k,k] for k in range(n)) - K) 
+                cost += model.C[i,j] * model.Y[i,j,k]
+    #cost = sum([[[model.C[i,j]*model.Y[i,j,k]] for k in range(min(i,j)+1)] for j in range(i)] for i in range(n))
+
+    C13 = (sum(model.Z[k,k] for k in range(n)) - K)
     return cost - lambda2*C13 - sum([a*b for a,b in zip(lambda1,C9)])
 
 

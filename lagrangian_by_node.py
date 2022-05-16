@@ -47,7 +47,7 @@ def calculate_cost(model):
     cost = 0
     for j in range(k_global,n-1):
         for i in range(j+1, n):
-            cost += model.C[i,j]*model.Y[i,j]
+            cost += model.C[i,j] * model.Y[i,j]
             
     C9 = [model.Z[i] for i in range(n)]
     C13 = model.Z[k_global]
