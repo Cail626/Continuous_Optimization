@@ -139,7 +139,7 @@ def solve_lagrangian(instance_name):
     opt = pyo.SolverFactory('glpk')
     start = time.time()         #the variable that holds the starting time the code for the clock come from https://stackoverflow.com/questions/13893287/python-time-limit
     elapsed = 0                 #the variable that holds the number of seconds elapsed.
-    while elapsed < 300 and lower_bound/upper_bound > 0.999:
+    while elapsed < 3600 and lower_bound/upper_bound > 0.999:
         update_lambdas()
         upper_bound = solve_relaxation(model) # we maximise thus the upper bound is given by the relaxation
         elapsed = time.time() - start #update the time elapsed

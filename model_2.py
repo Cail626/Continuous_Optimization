@@ -133,7 +133,7 @@ def solve_lagrangian(p, instance_name):
     model.Constraint_13 = pyo.Constraint(rule=Constraint_13)
 
     opt = pyo.SolverFactory('glpk')
-    opt.options['tmlim'] = 600
+    opt.options['tmlim'] = 3600
     #model.display('test2.txt')
     opt.solve(model, tee=True)
     #print(pyo.value(model.goal))
