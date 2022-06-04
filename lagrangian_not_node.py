@@ -317,7 +317,7 @@ def solve_lagrangian(p, instance_name, debug=False, verbose=False):
     Y_init = Y.copy()
 
     ### COMPUTE COST ###
-    while elapsed < 600 and lower_bound / upper_bound < 0.999:
+    while elapsed < 3600 and lower_bound / upper_bound < 0.999:
 
         lambda1_buffer, lambda2_buffer = lambda1.copy(), lambda2
 

@@ -109,7 +109,10 @@ def solve_lagrangian(p, instance_name):
     
     n = len(C)
     P = int(p*math.ceil(n / K))
-    C_dict = {}
+    if P == int((p+0.5)*math.ceil(n / K)): #avoid running the same code twice
+        exit()
+    
+    C_dict = {}    
     for i in range(0,n):
         for j in range(0,n):
             C_dict[(i,j)] = C[i][j]
@@ -135,7 +138,7 @@ def solve_lagrangian(p, instance_name):
     model.Constraint_4 = pyo.Constraint(model.i,model.j,model.k,rule=Constraint_4)    
     model.Constraint_5 = pyo.Constraint(model.k,rule=Constraint_5)
     opt = pyo.SolverFactory('glpk')
-    opt.options['tmlim'] = 600
+    opt.options['tmlim'] = 3600
     #model.display('test.txt')
 
     opt.solve(model, tee=True)
