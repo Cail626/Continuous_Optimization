@@ -104,7 +104,7 @@ def find_feasible_solution(Z):
                 cost += C[i, j] * Y[i, j, k]
     return cost
 
-def fix_constraints(Z: np.ndarray) -> np.ndarray:
+def fix_constraints(Z):
     """
     Fix the parameter Z for the constraints 9 and 13
     :param Z: Parameter Z of the problem. See paper.
@@ -199,7 +199,7 @@ def fix_constraints(Z: np.ndarray) -> np.ndarray:
 
     return output_Y(Z)
 
-def output_Y(Z: np.ndarray) -> np.ndarray:
+def output_Y(Z):
     # Apply Constraints 10 and 11 to Y
     Y = np.zeros(shape=(n,n,n), dtype=int)
 
