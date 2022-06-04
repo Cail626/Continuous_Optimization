@@ -47,7 +47,7 @@ def calculate_cost(model):
     cost = 0
     for j in range(k_global,n-1):
         for i in range(j+1, n):
-            cost += model.C[i,j]*model.Y[i,j]
+            cost += model.C[i,j] * model.Y[i,j]
             
     C9 = [model.Z[i] for i in range(n)]
     C13 = model.Z[k_global]
@@ -72,8 +72,6 @@ def Constraint_11(model,i,j):
 
 def Constraint_12(model):
     """ Make sure a node is representative if and only if zkk is equal to one, and that each node represents at most P − 1 other nodes, hence leading to subsets withat most P nodes."""
-    # if k_global == n-1:
-    #     return pyo.Constraint.Skip
 
     return sum(model.Z[i] for i in range(k_global+1,n)) <= (P-1) * model.Z[k_global]
     
@@ -193,102 +191,6 @@ def fix_constraints(Z: np.ndarray) -> np.ndarray:
 
     return output_Y(Z)
 
-
-def tesssstsstts(Z: np.ndarray) -> np.ndarray:
-    """
-    Fix the parameter Z for the constraints 9 and 13
-    :param Z: Parameter Z of the problem. See paper.
-    """
-
-    ### Fix Constraint 9 :
-
-    # Will check if there is many zero on the lower triangular
-    # matrix and will keep only the rightmost one.
-    # (explanation is following after the example)
-    ##  Example :
-    # [1, ., ., ., .]
-    # [0, 1, ., ., .]
-    # [0, 1, 1, ., .]
-    # [0, 0, 1, 1, .]
-    # [1, 0, 0, 0, 1]
-    ##  will become :
-    # [1, ., ., ., .]
-    # [0, 1, ., ., .]
-    # [0, 0, 1, ., .]
-    # [0, 0, 0, 1, .]
-    # [0, 0, 0, 0, 1]
-    # If the line of the lower triangle matrix is full of zero,
-    # it puts a zero on diagonal
-    ## Example :
-    # [0, ., ., ., .]
-    # [0, 0, ., ., .]
-    # [0, 0, 0, ., .]
-    # [0, 0, 0, 0, .]
-    # [0, 0, 0, 0, 0]
-    ## will become :
-    # [1, ., ., ., .]
-    # [0, 1, ., ., .]
-    # [0, 0, 1, ., .]
-    # [0, 0, 0, 1, .]
-    # [0, 0, 0, 0, 1]
-
-    for i in range(n):
-        null = True
-        for k in range(i, -1, -1):
-            if Z[i, k] == 1:
-                null = False
-                Z[i, :k] = 0
-        if null:
-            Z[i, i] = 1
-    ### End constraint 9
-
-
-
-    ### Fix Constraint 13 :
-    # Will compare the sum of the diagonal (nb_subsets) to the
-    # number of subset we need (K)
-    #  If there is too many ones on the diagonal, we move the
-    # ones on the diagonal on their respective line. We have to
-    # not open a new subset, and we choose heuristically
-    # the most filled subset (but not full).
-    #  If there is too few ones on the diagonal, we add ones
-    # on the diagonal.
-    #  For the both case we change the matrix from the lower part
-    # of the lower triangle matrix
-    nb_subsets = sum(Z[k, k] for k in range(n))
-    col = np.array([(P - sum(Z[i:, i])) * Z[i, i] for i in range(n)])
-
-    if nb_subsets > K:
-        for i in range(n - 1, -1, -1):
-            if nb_subsets <= K: break
-            if Z[i, i] == 1:
-                nb_subsets -= 1
-
-                col[i] = 0
-                # all subset moved out
-                for it in range(i, n):
-                    if Z[it, i] == 1:
-                        Z[it, i] = 0
-                        disp_subsets = np.where(col > 0)[0]
-                        col_min = disp_subsets[np.argmin(col[disp_subsets])]
-
-                        Z[it, col_min] = 1
-                        col[col_min] -= 1
-
-
-    elif nb_subsets < K:
-        for i in range(n - 1, -1, -1):
-            if nb_subsets >= K: break
-            if Z[i, i] == 0:
-                Z[i, i] = 1
-                nb_subsets += 1
-
-                Z[i, :i] = 0
-
-    # End Constraint 13
-
-    return Z
-
 def output_Y(Z: np.ndarray) -> np.ndarray:
     # Apply Constraints 10 and 11 to Y
     Y = np.zeros(shape=(n,n,n), dtype=int)
@@ -312,7 +214,6 @@ def compute_C13(Z):
     return sum(Z[k,k] for k in range(n)) - K
 
 def update_lambdas(lower_bound, upper_bound, Z):
-    # theta = 1
     global lambda1, lambda2, theta
     C9 = compute_C9(Z)
     C13 = compute_C13(Z)
@@ -334,6 +235,7 @@ def update_lambdas(lower_bound, upper_bound, Z):
 
 def solve_node(C_dict, debug=False):
     ### PYOMO MODEL ###
+
     model = pyo.ConcreteModel()
     model.i = pyo.RangeSet(0, n - 1)
     model.j = pyo.RangeSet(0, n - 1)
@@ -355,16 +257,16 @@ def solve_node(C_dict, debug=False):
         model.display('before_solving_lagrangian_not_node.txt')
 
     ### SOLVING ###
-    opt = pyo.SolverFactory('glpk')
-    # opt.options['tmlim'] = 60
+    opt = pyo.SolverFactory('glpk')  # GLPK OPTION
+    # opt.options['tmlim'] = 60  # LIMITATION COMPUTATION TIME
+    results = opt.solve(model, tee=False)
+    # print(results.solver.goal)
 
-    opt.solve(model, tee=False)
+    if results.solver.termination_condition == pyo.TerminationCondition.optimal:
+        print(model.solutions.load_from(results))
 
     if debug:
         model.display('after_solving_lagrangian_not_node.txt')
-
-    # print(np.array(pyo.value(model.Y[:, :])).reshape((n, n)))
-    # print(np.array(pyo.value(model.Z[:])))
 
     return pyo.value(model.goal), pyo.value(model.Z[:]), np.array(pyo.value(model.Y[:,:])).reshape(n,n).tolist()
 
@@ -384,43 +286,48 @@ def solve_lagrangian(p,instance_name, debug=False):
     global n, K, P, k_global, C
     global lambda1, lambda2, theta
 
+    ### INITIALIZE TIME MEASURE ###
+    start = time.time()  # the variable that holds the starting time the code for the clock come from https://stackoverflow.com/questions/13893287/python-time-limit
+    elapsed = 0  # the variable that holds the number of seconds elapsed.
+
+    ### INITIALIZE PARAMETERS ###
     C = read_instance(instance_name)
 
-    n = len(C)
-    
-    lambda1 = [1 for _ in range(n)]
-    lambda1_init = lambda1.copy()
-    lambda2 = 1
-    lambda2_init = lambda2
-    theta = 1.0
-    min_it = 10
-    
-    P = int(math.ceil(n / K)*p)
-    print('P: ', P)
+    n = len(C) # Number of nodes
+    P = int(math.ceil(n / K) * p) # Maximum nodes by subset
 
+    # Cost matrix
     C_dict = {}
     for i in range(n):
         for j in range(n):
             C_dict[(i,j)] = C[i][j]
 
-    ### COMPUTE COST BY NODE ###
+    # Lambdas for relaxation
+    lambda1 = [1 for _ in range(n)]
+    lambda1_init = lambda1.copy()
+    lambda2 = 1
+    lambda2_init = lambda2
+    # Theta
+    theta = 1.0
 
-    start = time.time()  # the variable that holds the starting time the code for the clock come from https://stackoverflow.com/questions/13893287/python-time-limit
-    elapsed = 0  # the variable that holds the number of seconds elapsed.
-
-    lower_bound, upper_bound  =  0, np.sum(C)
+    # Sure lower and upper bounds
+    lower_bound, upper_bound = 0, np.sum(C)
     best_lower_bound, best_upper_bound = 0, np.sum(C)
+    #init_lower_bound, init_upper_bound = 0, np.sum(C)
 
-    Z = np.ndarray(shape=(n,n))
+    n_it = 0  # nb of iterations # n_init is used to optimize the theta
+    min_it = 5  # nb of iterations after the algo is checking the divergence
+
+    Z = np.ndarray(shape=(n, n))
     Z_init = Z.copy()
-    Y = np.ndarray(shape=(n,n,n))
+    Y = np.ndarray(shape=(n, n, n))
     Y_init = Y.copy()
 
-    n_it = 0
-
+    ### COMPUTE COST BY NODE ###
     while elapsed < 600 and lower_bound / upper_bound < 0.999:
 
         lambda1_buffer, lambda2_buffer = lambda1.copy(), lambda2
+
         ## UPPER BOUND
         upper_bound = 0
         for k_global in range(n):
@@ -432,78 +339,85 @@ def solve_lagrangian(p,instance_name, debug=False):
         Z_low = Z.copy()
         lower_bound = find_feasible_solution(Z_low) # Z reshaped to be a numpy array
         update_lambdas(lower_bound, upper_bound, Z)
-        # print(Z)
-        # print(Z_low)
 
-        # printY(Y)
-        # print("-------")
-        # print(tesssstsstts(Z.copy()))
-        # printY(fix_constraints(Z.copy()))
+        if n_it == 1:
+            init_upper_bound = upper_bound
+
+        if debug:
+            print("elapsed time = %f"%elapsed)
+            print("lambda1 = " + str(lambda1))
+            print("lambda2 = " + str(lambda2))
+            print("lower_bound = " + str(lower_bound))
+            print("upper_bound = " + str(upper_bound))
+
+            if lambda1_buffer == lambda1 and lambda2_buffer == lambda2:
+                print("stalling...", end="")
+
+                if theta >= 0.001:
+                    theta *= 0.7
+                    print("change theta value to %f"%theta)
+                else:
+                    print("end with theta value of %f"%theta)
+                    break
+        else:
+            if lambda1_buffer == lambda1 and lambda2_buffer == lambda2:
+                if theta >= 0.001:
+                    theta *= 0.7
+                else:
+                    break
+        
+        if lower_bound > best_lower_bound:
+            best_lower_bound = lower_bound
+        if upper_bound < best_upper_bound:
+            best_upper_bound = upper_bound
+
+        if debug:
+            if n_it > min_it and upper_bound > init_upper_bound:
+                print("-----------------")
+                print("Divergence detected")
+                Z = Z_init.copy()
+                Y = Y_init.copy()
+                lambda1 = lambda1_init.copy()
+                lambda2 = lambda2_init
+                n_it = 0
+                theta *= 0.5
+                print("New theta: ", theta)
+                print("-----------------")
+        else:
+            if n_it > min_it and upper_bound > init_upper_bound:
+                Z = Z_init.copy()
+                Y = Y_init.copy()
+                lambda1 = lambda1_init.copy()
+                lambda2 = lambda2_init
+                n_it = 0
+                theta *= 0.5
 
         elapsed = time.time() - start  # update the time elapsed
         n_it += 1
-        
-        if(n_it == 1):
-            upper_bound_init = upper_bound
-            #lower_bound_init = lower_bound
-        
-        print("elapsed time = %f"%elapsed)
-        # print(lambda1)
-        # print(lambda2)
-        print(lower_bound)
-        print(upper_bound)
 
-        if lambda1_buffer == lambda1 and lambda2_buffer == lambda2:
-            print("stalling...", end="")
-
-            if theta >= 0.001:
-                theta *= 0.7
-                print("change theta value to %f"%theta)
-            else:
-                print("end with theta value of %f"%theta)
-                break
-        
-        if(lower_bound>best_lower_bound):
-            best_lower_bound = lower_bound
-        if(upper_bound<best_upper_bound):
-            best_upper_bound = upper_bound
-        
-        if(n_it>min_it and upper_bound>upper_bound_init):
-            print("-----------------")
-            print("Divergence detected")
-            Z = Z_init.copy()
-            Y = Y_init.copy()
-            lambda1 = lambda1_init.copy()
-            lambda2 = lambda2_init
-            n_it = 0
-            theta *= 0.5
-            print("New theta: ", theta)
-            print("-----------------")
-            
-    
+    ### OUTPUT RESULT FILE ###
     print("Saving file")
+
+    # Create output folder if it does not exist
+    if not os.path.exists("result"):
+        os.mkdir("result")
+
+    # Saving
     with open("result"+os.sep+"result_by_node_"+file_name.split('.')[0]+"_"+str(K)+"_"+str(P)+".txt",'w') as f:
         elapsed = time.time() - start
-        
         f.write(str(best_lower_bound)+" "+ str(best_upper_bound)+" "+str(elapsed))
-        
 
-def printY(Y):
-    for k in range(K):
-        print(Y[:,:,k])
 
 if __name__ == "__main__":
-    
     global K
     
     # file_name = "a280.tsp"
     # file_name = "eil51.tsp"
-    #file_name = "custom.tsp"
+    # file_name = "custom.tsp"
     
     file_name = sys.argv[1]
     K = int(sys.argv[2])
     p = float(sys.argv[3])
-    
     
     solve_lagrangian(p,file_name, debug=False)
 
