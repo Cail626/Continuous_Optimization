@@ -352,7 +352,7 @@ def solve_lagrangian(p,instance_name, debug=False):
             print("upper_bound = " + str(upper_bound))
 
             if lambda1_buffer == lambda1 and lambda2_buffer == lambda2:
-                print("stalling...", end="")
+                print("stalling...")
 
                 if theta >= 0.001:
                     theta *= 0.7
