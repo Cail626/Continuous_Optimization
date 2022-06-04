@@ -308,7 +308,7 @@ def solve_lagrangian(p,instance_name, debug=False):
     lambda2 = 1
     lambda2_init = lambda2
     # Theta
-    theta = 1.0
+    theta = 0.5
 
     # Sure lower and upper bounds
     lower_bound, upper_bound = 0, np.sum(C)

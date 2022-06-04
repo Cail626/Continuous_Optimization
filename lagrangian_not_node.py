@@ -45,7 +45,7 @@ def calculate_cost(model):
     global lambda1, lambda2
     cost = 0
 
-    C9 = [(sum(pyo.value(model.Z[i,k]) for k in range(i+1))-1) for i in range(n)]
+    C9 = [(sum(model.Z[i,k] for k in range(i+1))-1) for i in range(n)]
     for i in range(n):
         for j in range(i):
             for k in range(min(i,j)+1):
@@ -301,7 +301,7 @@ def solve_lagrangian(p, instance_name, debug=False, verbose=False):
     lambda2 = 1
     lambda2_init = lambda2
     # Theta
-    theta = 1.0
+    theta = 0.5
 
     # Sure lower and upper bounds
     lower_bound, upper_bound  =  0, np.sum(C)
