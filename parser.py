@@ -6,6 +6,12 @@ import sys
 import os
 global n, K, P
 
+matplotlib.rcParams['lines.linewidth'] = 4
+matplotlib.rcParams['font.size'] = 14   # fontsize of the axes title
+matplotlib.rcParams['axes.labelsize'] = 20   # fontsize of the axes title
+matplotlib.rcParams['axes.titlesize'] = 20   # fontsize of the axes title
+
+
 def get_results(filename):
   with open(filename,'r') as f:
         line = f.read()
@@ -24,15 +30,15 @@ for instance in range(len(instance_list)):
     for K in range(len(K_list)):
         for P in range(len(P_list)):
             for model in range(len(model_list)):
-                filename = "result"+os.sep+model_list[model]+"_"+instance_list[instance].split('.')[0]+"_"+str(K_list[K])+"_"+str(P_list[P])+".txt"
-                value[instance[K[P[model]]]], time[instance[K[P[model]]]] = get_results(filename)
+                filename = "result2"+os.sep+model_list[model]+"_"+instance_list[instance].split('.')[0]+"_"+str(K_list[K])+"_"+str(P_list[P])+".txt"
+                value[instance][K][P][model], time[instance][K][P][model] = get_results(filename)
                 
 # TODO GRAPHS
 color = [(254/256,97/256,0/256),(255/256,176/256,0),(100/256,143/256,255/256),(120/256,94/256,240/256)] #["red","darkorange","navy","royalblue"]
 lines = ["-","--","-.",":"] #  ["solid", "dash", "dot", "dashdoted"]
 figvalue=plt.figure()
 for i in range(len(model_list)):
-  plt.plot([int(re.sub("[^0-9]", "",instance_list[i]))],[value[j[0[0[i]]]] for j in range(len(instance_list))], lines[i], label=model_list[i].split(".")[0],  color=color[i])
+  plt.plot([int(re.sub("[^0-9]", "",instance_list[i]))],[value[j][0][0][i] for j in range(len(instance_list))], lines[i], label=model_list[i].split(".")[0],  color=color[i])
 plt.xlabel("Instance size")
 plt.ylabel("Value")
 plt.legend(loc='best')
@@ -42,7 +48,7 @@ plt.close(figvalue)#plt.show() #
 
 figvalue=plt.figure()
 for i in range(len(model_list)):
-  plt.plot([int(re.sub("[^0-9]", "",instance_list[i]))],[time[j[0[0[i]]]] for j in range(len(instance_list))], lines[i], label=model_list[i].split(".")[0],  color=color[i])
+  plt.plot([int(re.sub("[^0-9]", "",instance_list[i]))],[time[j][0][0][i] for j in range(len(instance_list))], lines[i], label=model_list[i].split(".")[0],  color=color[i])
 plt.xlabel("Instance size")
 plt.ylabel("Time")
 plt.legend(loc='best')
