@@ -31,9 +31,9 @@ def get_results_node(filename):
         return value_lb,value_ub, time
 
 def make_graph_instance_size(p,k):
-  fig_value_lb=plt.figure()
+  fig_value_lb=plt.figure(figsize=(8, 6))
   for m in range(len(model_list)):
-    plt.plot([int(re.sub("[^0-9]", "",instance_list[j])) for j in range(len(instance_list)) ],[value_lb[j][k][p][m] for j in range(len(instance_list))], lines[m], label=model_list[m], color=color[m], alpha = 0.7, marker ='o')
+    plt.plot([int(re.sub("[^0-9]", "",instance_list[j])) for j in range(len(instance_list)) ],[value_lb[j][k][p][m] for j in range(len(instance_list))], lines[m], label=model_name[m], color=color[m], alpha = 0.7, marker ='o')
   plt.xlabel("Instance size")
   plt.yscale("log")
   plt.ylabel("Value lower bound")
@@ -42,19 +42,20 @@ def make_graph_instance_size(p,k):
   plt.savefig("image"+os.sep+"Value_lb_instance_K-"+str(K_list[k])+"_P-"+str(P_list[p])+".png",dpi=500, bbox_inches='tight')
   plt.close(fig_value_lb)#plt.show() #
 
-  fig_value_ub=plt.figure()
+  fig_value_ub=plt.figure(figsize=(8, 6))
   for m in range(len(model_list)-2):
-    plt.plot([int(re.sub("[^0-9]", "",instance_list[j])) for j in range(len(instance_list)) ],[value_ub[j][k][p][m] for j in range(len(instance_list))], lines[m+2], label=model_list[m+2], color=color[m+2], alpha = 0.7, marker ='o')
+    plt.plot([int(re.sub("[^0-9]", "",instance_list[j])) for j in range(len(instance_list)) ],[value_ub[j][k][p][m] for j in range(len(instance_list))], lines[m+2], label=model_name[m+2], color=color[m+2], alpha = 0.7, marker ='o')
   plt.xlabel("Instance size")
   plt.ylabel("Value upper bound")
+  plt.yscale("log")
   plt.legend(loc='best')
   fig_value_lb.tight_layout()
   plt.savefig("image"+os.sep+"Value_ub_instance_K-"+str(K_list[k])+"_P-"+str(P_list[p])+".png",dpi=500, bbox_inches='tight')
   plt.close(fig_value_ub)#plt.show() #
 
-  figtime=plt.figure()
+  figtime=plt.figure(figsize=(8, 6))
   for m in range(len(model_list)):
-    plt.plot([int(re.sub("[^0-9]", "",instance_list[j])) for j in range(len(instance_list)) ],[time[j][k][p][m] for j in range(len(instance_list))], lines[m], label=model_list[m].split(".")[0], color=color[m], alpha = 0.7, marker ='o')
+    plt.plot([int(re.sub("[^0-9]", "",instance_list[j])) for j in range(len(instance_list)) ],[time[j][k][p][m] for j in range(len(instance_list))], lines[m], label=model_name[m], color=color[m], alpha = 0.7, marker ='o')
   plt.xlabel("Instance size")
   plt.ylabel("Time")
   plt.legend(loc='best')
@@ -63,9 +64,9 @@ def make_graph_instance_size(p,k):
   plt.close(figtime)#plt.show() #
 
 def make_graph_K(p,instance):
-  fig_value_lb=plt.figure()
+  fig_value_lb=plt.figure(figsize=(8, 6))
   for m in range(len(model_list)):
-    plt.plot([int(K_list[k]) for k in range(len(K_list)) ],[value_lb[instance][k][p][m] for k in range(len(K_list))], lines[m], label=model_list[m], color=color[m], alpha = 0.7, marker ='o')
+    plt.plot([int(K_list[k]) for k in range(len(K_list)) ],[value_lb[instance][k][p][m] for k in range(len(K_list))], lines[m], label=model_name[m], color=color[m], alpha = 0.7, marker ='o')
   plt.xlabel("K")
   plt.yscale("log")
   plt.ylabel("Value lower bound")
@@ -74,9 +75,9 @@ def make_graph_K(p,instance):
   plt.savefig("image"+os.sep+"Value_lb_K_instance-"+str(instance_list[instance])+"_P-"+str(P_list[p])+".png",dpi=500, bbox_inches='tight')
   plt.close(fig_value_lb)#plt.show() #
 
-  fig_value_ub=plt.figure()
+  fig_value_ub=plt.figure(figsize=(8, 6))
   for m in range(len(model_list)-2):
-    plt.plot([int(K_list[k]) for k in range(len(K_list)) ],[value_ub[instance][k][p][m] for k in range(len(K_list))], lines[m+2], label=model_list[m+2], color=color[m+2], alpha = 0.7, marker ='o')
+    plt.plot([int(K_list[k]) for k in range(len(K_list)) ],[value_ub[instance][k][p][m] for k in range(len(K_list))], lines[m+2], label=model_name[m+2], color=color[m+2], alpha = 0.7, marker ='o')
   plt.xlabel("K")
   plt.ylabel("Value upper bound")
   plt.legend(loc='best')
@@ -84,9 +85,9 @@ def make_graph_K(p,instance):
   plt.savefig("image"+os.sep+"Value_ub_K_instance-"+str(instance_list[instance])+"_P-"+str(P_list[p])+".png",dpi=500, bbox_inches='tight')
   plt.close(fig_value_ub)#plt.show() #
 
-  figtime=plt.figure()
+  figtime=plt.figure(figsize=(8, 6))
   for m in range(len(model_list)):
-    plt.plot([int(K_list[k]) for k in range(len(K_list)) ],[time[instance][k][p][m] for k in range(len(K_list))], lines[m], label=model_list[m].split(".")[0], color=color[m], alpha = 0.7, marker ='o')
+    plt.plot([int(K_list[k]) for k in range(len(K_list)) ],[time[instance][k][p][m] for k in range(len(K_list))], lines[m], label=model_name[m], color=color[m], alpha = 0.7, marker ='o')
   plt.xlabel("K")
   plt.ylabel("Time")
   plt.legend(loc='best')
@@ -96,10 +97,10 @@ def make_graph_K(p,instance):
 
 
 def make_graph_P(k,instance):
-  fig_value_lb=plt.figure()
+  fig_value_lb=plt.figure(figsize=(8, 6))
   for m in range(len(model_list)):
-    plt.plot([float(P_list[p]) for p in range(len(P_list)) ],[value_lb[instance][k][p][m] for p in range(len(P_list))], lines[m], label=model_list[m], color=color[m], alpha = 0.7, marker ='o')
-  plt.xlabel("P")
+    plt.plot([float(P_list[p]) for p in range(len(P_list)) ],[value_lb[instance][k][p][m] for p in range(len(P_list))], lines[m], label=model_name[m], color=color[m], alpha = 0.7, marker ='o')
+  plt.xlabel("p")
   plt.yscale("log")
   plt.ylabel("Value lower bound")
   plt.legend(loc='best')
@@ -107,20 +108,21 @@ def make_graph_P(k,instance):
   plt.savefig("image"+os.sep+"Value_lb_P_instance-"+str(instance_list[instance])+"_K-"+str(K_list[k])+".png",dpi=500, bbox_inches='tight')
   plt.close(fig_value_lb)#plt.show() #
 
-  fig_value_ub=plt.figure()
+  fig_value_ub=plt.figure(figsize=(8, 6))
   for m in range(len(model_list)-2):
-    plt.plot([float(P_list[p]) for p in range(len(P_list)) ],[value_ub[instance][k][p][m] for p in range(len(P_list))], lines[m+2], label=model_list[m+2], color=color[m+2], alpha = 0.7, marker ='o')
-  plt.xlabel("P")
+    plt.plot([float(P_list[p]) for p in range(len(P_list)) ],[value_ub[instance][k][p][m] for p in range(len(P_list))], lines[m+2], label=model_name[m+2], color=color[m+2], alpha = 0.7, marker ='o')
+  plt.xlabel("p")
+  #plt.yscale("log")
   plt.ylabel("Value upper bound")
   plt.legend(loc='best')
   fig_value_lb.tight_layout()
   plt.savefig("image"+os.sep+"Value_ub_P_instance-"+str(instance_list[instance])+"_K-"+str(K_list[k])+".png",dpi=500, bbox_inches='tight')
   plt.close(fig_value_ub)#plt.show() #
 
-  figtime=plt.figure()
+  figtime=plt.figure(figsize=(8, 6))
   for m in range(len(model_list)):
-    plt.plot([float(P_list[p]) for p in range(len(P_list)) ],[time[instance][k][p][m] for p in range(len(P_list))], lines[m], label=model_list[m].split(".")[0], color=color[m], alpha = 0.7, marker ='o')
-  plt.xlabel("P")
+    plt.plot([float(P_list[p]) for p in range(len(P_list)) ],[time[instance][k][p][m] for p in range(len(P_list))], lines[m], label=model_name[m], color=color[m], alpha = 0.7, marker ='o')
+  plt.xlabel("p")
   plt.ylabel("Time")
   plt.legend(loc='best')
   figtime.tight_layout()
@@ -128,7 +130,7 @@ def make_graph_P(k,instance):
   plt.close(figtime)#plt.show() #
 
 
-
+model_name =  ["Model 1", "Model 2", "Lagrangian relaxation","Lagrangian relaxation by node"]
 model_list =  ["model_1", "model_2", "result_not_node","result_by_node"] # ["model_1", "model_2", "result_not_node"]  # 
 instance_list = ["eil51.tsp", "eil76.tsp",  "eil101.tsp", "bier127.tsp", "a280.tsp"] # , "pr439.tsp"]
 K_list = ["3", "4", "5"] #["3"] # 
