@@ -39,7 +39,7 @@ def make_graph_instance_size(p,k):
   plt.ylabel("Value lower bound")
   plt.legend(loc='best')
   fig_value_lb.tight_layout()
-  plt.savefig("image"+os.sep+"Value_lb_instance_K-"+str(K_list[k])+"_P-"+str(P_list[p])+".png",dpi=500)
+  plt.savefig("image"+os.sep+"Value_lb_instance_K-"+str(K_list[k])+"_P-"+str(P_list[p])+".png",dpi=500, bbox_inches='tight')
   plt.close(fig_value_lb)#plt.show() #
 
   fig_value_ub=plt.figure()
@@ -49,7 +49,7 @@ def make_graph_instance_size(p,k):
   plt.ylabel("Value upper bound")
   plt.legend(loc='best')
   fig_value_lb.tight_layout()
-  plt.savefig("image"+os.sep+"Value_ub_instance_K-"+str(K_list[k])+"_P-"+str(P_list[p])+".png",dpi=500)
+  plt.savefig("image"+os.sep+"Value_ub_instance_K-"+str(K_list[k])+"_P-"+str(P_list[p])+".png",dpi=500, bbox_inches='tight')
   plt.close(fig_value_ub)#plt.show() #
 
   figtime=plt.figure()
@@ -59,39 +59,39 @@ def make_graph_instance_size(p,k):
   plt.ylabel("Time")
   plt.legend(loc='best')
   figtime.tight_layout()
-  plt.savefig("image"+os.sep+"Time_instance_K-"+str(K_list[k])+"_P-"+str(P_list[p])+".png",dpi=500)
+  plt.savefig("image"+os.sep+"Time_instance_K-"+str(K_list[k])+"_P-"+str(P_list[p])+".png",dpi=500, bbox_inches='tight')
   plt.close(figtime)#plt.show() #
 
 def make_graph_K(p,instance):
   fig_value_lb=plt.figure()
   for m in range(len(model_list)):
     plt.plot([int(K_list[k]) for k in range(len(K_list)) ],[value_lb[instance][k][p][m] for k in range(len(K_list))], lines[m], label=model_list[m], color=color[m], alpha = 0.7, marker ='o')
-  plt.xlabel("Instance size")
+  plt.xlabel("K")
   plt.yscale("log")
   plt.ylabel("Value lower bound")
   plt.legend(loc='best')
   fig_value_lb.tight_layout()
-  plt.savefig("image"+os.sep+"Value_lb_K_instance-"+str(instance_list[instance])+"_P-"+str(P_list[p])+".png",dpi=500)
+  plt.savefig("image"+os.sep+"Value_lb_K_instance-"+str(instance_list[instance])+"_P-"+str(P_list[p])+".png",dpi=500, bbox_inches='tight')
   plt.close(fig_value_lb)#plt.show() #
 
   fig_value_ub=plt.figure()
   for m in range(len(model_list)-2):
     plt.plot([int(K_list[k]) for k in range(len(K_list)) ],[value_ub[instance][k][p][m] for k in range(len(K_list))], lines[m+2], label=model_list[m+2], color=color[m+2], alpha = 0.7, marker ='o')
-  plt.xlabel("Instance size")
+  plt.xlabel("K")
   plt.ylabel("Value upper bound")
   plt.legend(loc='best')
   fig_value_lb.tight_layout()
-  plt.savefig("image"+os.sep+"Value_ub_K_instance-"+str(instance_list[instance])+"_P-"+str(P_list[p])+".png",dpi=500)
+  plt.savefig("image"+os.sep+"Value_ub_K_instance-"+str(instance_list[instance])+"_P-"+str(P_list[p])+".png",dpi=500, bbox_inches='tight')
   plt.close(fig_value_ub)#plt.show() #
 
   figtime=plt.figure()
   for m in range(len(model_list)):
     plt.plot([int(K_list[k]) for k in range(len(K_list)) ],[time[instance][k][p][m] for k in range(len(K_list))], lines[m], label=model_list[m].split(".")[0], color=color[m], alpha = 0.7, marker ='o')
-  plt.xlabel("Instance size")
+  plt.xlabel("K")
   plt.ylabel("Time")
   plt.legend(loc='best')
   figtime.tight_layout()
-  plt.savefig("image"+os.sep+"Time_K_instance-"+str(instance_list[instance])+"_P-"+str(P_list[p])+".png",dpi=500)
+  plt.savefig("image"+os.sep+"Time_K_instance-"+str(instance_list[instance])+"_P-"+str(P_list[p])+".png",dpi=500, bbox_inches='tight')
   plt.close(figtime)#plt.show() #
 
 
@@ -99,32 +99,32 @@ def make_graph_P(k,instance):
   fig_value_lb=plt.figure()
   for m in range(len(model_list)):
     plt.plot([float(P_list[p]) for p in range(len(P_list)) ],[value_lb[instance][k][p][m] for p in range(len(P_list))], lines[m], label=model_list[m], color=color[m], alpha = 0.7, marker ='o')
-  plt.xlabel("Instance size")
+  plt.xlabel("P")
   plt.yscale("log")
   plt.ylabel("Value lower bound")
   plt.legend(loc='best')
   fig_value_lb.tight_layout()
-  plt.savefig("image"+os.sep+"Value_lb_P_instance-"+str(instance_list[instance])+"_K-"+str(K_list[k])+".png",dpi=500)
+  plt.savefig("image"+os.sep+"Value_lb_P_instance-"+str(instance_list[instance])+"_K-"+str(K_list[k])+".png",dpi=500, bbox_inches='tight')
   plt.close(fig_value_lb)#plt.show() #
 
   fig_value_ub=plt.figure()
   for m in range(len(model_list)-2):
     plt.plot([float(P_list[p]) for p in range(len(P_list)) ],[value_ub[instance][k][p][m] for p in range(len(P_list))], lines[m+2], label=model_list[m+2], color=color[m+2], alpha = 0.7, marker ='o')
-  plt.xlabel("Instance size")
+  plt.xlabel("P")
   plt.ylabel("Value upper bound")
   plt.legend(loc='best')
   fig_value_lb.tight_layout()
-  plt.savefig("image"+os.sep+"Value_ub_P_instance-"+str(instance_list[instance])+"_K-"+str(K_list[k])+".png",dpi=500)
+  plt.savefig("image"+os.sep+"Value_ub_P_instance-"+str(instance_list[instance])+"_K-"+str(K_list[k])+".png",dpi=500, bbox_inches='tight')
   plt.close(fig_value_ub)#plt.show() #
 
   figtime=plt.figure()
   for m in range(len(model_list)):
     plt.plot([float(P_list[p]) for p in range(len(P_list)) ],[time[instance][k][p][m] for p in range(len(P_list))], lines[m], label=model_list[m].split(".")[0], color=color[m], alpha = 0.7, marker ='o')
-  plt.xlabel("Instance size")
+  plt.xlabel("P")
   plt.ylabel("Time")
   plt.legend(loc='best')
   figtime.tight_layout()
-  plt.savefig("image"+os.sep+"Time_P_instance-"+str(instance_list[instance])+"_K-"+str(K_list[k])+".png",dpi=500)
+  plt.savefig("image"+os.sep+"Time_P_instance-"+str(instance_list[instance])+"_K-"+str(K_list[k])+".png",dpi=500, bbox_inches='tight')
   plt.close(figtime)#plt.show() #
 
 
